@@ -21,13 +21,14 @@ ifeq ($(call is-board-platform,msm8960),true)
   LOCAL_CFLAGS += -DTARGET_8930
 endif
 
+LOCAL_CFLAGS += -DBMA222E_SENSOR
 LOCAL_SRC_FILES :=	\
 		sensors.cpp 			\
 		SensorBase.cpp			\
 		LightSensor.cpp			\
 		ProximitySensor.cpp		\
 		AkmSensor.cpp			\
-		Accelerometer.cpp				\
+		BmaSensor.cpp				\
 		Mpu3050.cpp				\
 		Bmp180.cpp				\
 		InputEventReader.cpp

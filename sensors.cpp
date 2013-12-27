@@ -29,7 +29,11 @@
 #include <utils/Log.h>
 
 #include "sensors.h"
+#ifdef BMA222E_SENSOR
+#include "BmaSensor.h"
+#else
 #include "AccelSensor.h"
+#endif
 #include "LightSensor.h"
 #include "ProximitySensor.h"
 #include "AkmSensor.h"
@@ -41,6 +45,20 @@
 /* The SENSORS Module */
 static const struct sensor_t sSensorList[] = {
 	/* Accelerometer */
+#ifdef BMA222E_SENSOR
+	{
+		"BMA222E 3-axis Accelerometer",
+		"Bosch",
+		1,	/* hw/sw version */
+		SENSORS_ACCELERATION_HANDLE,
+		SENSOR_TYPE_ACCELEROMETER,
+		(4.0f * 9.81f),
+		(4.0f * 9.81f) / 256.0f,
+		0.2f,
+		0,
+		{ }
+	},
+#else
 	{
 		"accelerometer",
 		"ST Micro",
@@ -53,6 +71,7 @@ static const struct sensor_t sSensorList[] = {
 		2000,	/* microseconds */
 		{ }
 	},
+#endif
 
 	/* magnetic field sensor
 	{
@@ -239,7 +258,11 @@ sensors_poll_context_t::sensors_poll_context_t()
 	mPollFds[gyro].events = POLLIN;
 	mPollFds[gyro].revents = 0;
 
+#ifdef BMA222E_SENSOR
+	mSensors[accel] = new BmaSensor("bma2x2", TOP_Y_FORWARD);
+#else
 	mSensors[accel] = new AccelSensor();
+#endif
 	mPollFds[accel].fd = mSensors[accel]->getFd();
 	mPollFds[accel].events = POLLIN;
 	mPollFds[accel].revents = 0;
