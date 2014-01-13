@@ -44,7 +44,7 @@ enum {
 static const char *data_device_name[] = {
 	[LIGHTSENSOR_LEVEL] = "lightsensor-level",
 	[CM36283_LS] = "cm36283-ls",
-	[STK3x1x_LS] = "stk3x1x-ls",
+	[STK3x1x_LS] = "stk3x1x-als",
 };
 
 static const char *input_sysfs_path_list[] = {

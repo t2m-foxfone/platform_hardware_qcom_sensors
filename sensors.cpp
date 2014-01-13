@@ -102,7 +102,7 @@ static const struct sensor_t sSensorList[] = {
 	},*/
 
 	/* light sensor name */
-	{
+	/*{
 		"TSL27713FN",
 		"Taos",
 		1,
@@ -113,10 +113,22 @@ static const struct sensor_t sSensorList[] = {
 		0.75f,
 		0,
 		{ }
+	},*/
+	{
+		"stk3x1x Ambient Light Sensor",
+		"sensortek",
+		1,
+		SENSORS_LIGHT_HANDLE,
+		SENSOR_TYPE_LIGHT,
+		4096.0f,
+		1.0f,
+		0.09f,
+		0,
+		{ }
 	},
 
 	/* proximity sensor */
-	{
+	/*{
 		"TSL27713FN",
 		"Taos",
 		1,
@@ -125,6 +137,19 @@ static const struct sensor_t sSensorList[] = {
 		5.0f,
 		5.0f,
 		0.75f,
+		0,
+		{ }
+	},*/
+
+	{
+		"stk3x1x Proximity Sensor",
+		"sensortek",
+		1,
+		SENSORS_PROXIMITY_HANDLE,
+		SENSOR_TYPE_PROXIMITY,
+		1.0f,
+		0.1f,
+		0.873f,
 		0,
 		{ }
 	},
