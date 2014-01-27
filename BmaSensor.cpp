@@ -76,6 +76,7 @@ BmaSensor::BmaSensor(const char* InputName, BmaLayout Layout)
       mbitnum(0),
       mLayout(Layout)
 {
+    memset(&mAccData, 0 ,sizeof(mAccData));
     memset(&mPendingEvent, 0, sizeof(mPendingEvent));
 	memset(mClassPath, '\0', sizeof(mClassPath));
 
@@ -196,6 +197,7 @@ int BmaSensor::readEvents(sensors_event_t* data, int count)
 				mPendingEvent.timestamp = time;
 				if (mEnabled) {
 					*data++ = mPendingEvent;
+					mAccData = mPendingEvent;
 					count--;
 					numEventReceived++;
 				}

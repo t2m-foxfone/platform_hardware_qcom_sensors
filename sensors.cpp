@@ -39,6 +39,7 @@
 #include "AkmSensor.h"
 #include "GyroSensor.h"
 #include "PressureSensor.h"
+#include "ST480Sensor.h"
 
 /*****************************************************************************/
 
@@ -73,33 +74,33 @@ static const struct sensor_t sSensorList[] = {
 	},
 #endif
 
-	/* magnetic field sensor
+	// magnetic field sensor
 	{
-		"AK8975",
-		"Asahi Kasei Microdevices",
+		"ST480 MAG",
+		"SENODIA Technologies Co",
 		1,
 		SENSORS_MAGNETIC_FIELD_HANDLE,
 		SENSOR_TYPE_MAGNETIC_FIELD,
-		2000.0f,
-		(1.0f/16.0f),
-		6.8f,
+		32767.0f,
+		1.0f,
+		0.4f,
 		16667,
 		{ }
-	},*/
+	},
 
-	/* orientation sensor
+	// orientation sensor
 	{
-		"AK8975",
-		"Asahi Kasei Microdevices",
+		"ST480 ORT",
+		"SENODIA Technologies Co",
 		1,
 		SENSORS_ORIENTATION_HANDLE,
 		SENSOR_TYPE_ORIENTATION,
 		360.0f,
-		(1.0f/64.0f),
-		7.8f,
+		0.01f,
+		0.4f,
 		16667 ,
 		{ }
-	},*/
+	},
 
 	/* light sensor name */
 	/*{
@@ -273,11 +274,6 @@ sensors_poll_context_t::sensors_poll_context_t()
 	mPollFds[proximity].events = POLLIN;
 	mPollFds[proximity].revents = 0;
 
-	mSensors[compass] = new AkmSensor();
-	mPollFds[compass].fd = mSensors[compass]->getFd();
-	mPollFds[compass].events = POLLIN;
-	mPollFds[compass].revents = 0;
-
 	mSensors[gyro] = new GyroSensor();
 	mPollFds[gyro].fd = mSensors[gyro]->getFd();
 	mPollFds[gyro].events = POLLIN;
@@ -291,6 +287,11 @@ sensors_poll_context_t::sensors_poll_context_t()
 	mPollFds[accel].fd = mSensors[accel]->getFd();
 	mPollFds[accel].events = POLLIN;
 	mPollFds[accel].revents = 0;
+
+    mSensors[compass] = new ST480Sensor((BmaSensor*)mSensors[accel]);
+    mPollFds[compass].fd = mSensors[compass]->getFd();
+    mPollFds[compass].events = POLLIN;
+    mPollFds[compass].revents = 0;
 
 	mSensors[pressure] = new PressureSensor();
 	mPollFds[pressure].fd = mSensors[pressure]->getFd();

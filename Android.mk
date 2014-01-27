@@ -4,6 +4,10 @@ LOCAL_PATH := $(call my-dir)
 
 # HAL module implemenation stored in
 include $(CLEAR_VARS)
+LOCAL_PREBUILT_LIBS := libst480.a
+include $(BUILD_MULTI_PREBUILT)
+
+include $(CLEAR_VARS)
 
 ifneq ($(filter msm8610,$(TARGET_BOARD_PLATFORM)),)
   LOCAL_MODULE := sensors.$(TARGET_BOARD_PLATFORM)
@@ -27,14 +31,14 @@ LOCAL_SRC_FILES :=	\
 		SensorBase.cpp			\
 		LightSensor.cpp			\
 		ProximitySensor.cpp		\
-		AkmSensor.cpp			\
+		ST480Sensor.cpp			\
 		BmaSensor.cpp				\
 		Mpu3050.cpp				\
 		Bmp180.cpp				\
 		InputEventReader.cpp
 
 LOCAL_SHARED_LIBRARIES := liblog libcutils libdl
-
+LOCAL_STATIC_LIBRARIES := libst480
 include $(BUILD_SHARED_LIBRARY)
 
 endif #BUILD_TINY_ANDROID

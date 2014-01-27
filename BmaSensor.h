@@ -54,7 +54,7 @@ public:
     virtual int enable(int32_t handle, int enabled);
     virtual int readEvents(sensors_event_t* data, int count);
     void processEvent(int code, int value);
-
+    void getAccData(sensors_event_t* data){*data = mAccData;}
 private:
 	int sensor_get_class_path(char *class_path, const char* InputName);
 	int is_sensor_enabled();
@@ -85,6 +85,7 @@ private:
     unsigned char get_chip_id();
     int get_sensor_bitnum();
     void RemapAxis(int SrcAxis, int SrcValue, sensors_vec_t* Vector);
+    sensors_event_t mAccData;
 };
 
 /*****************************************************************************/
