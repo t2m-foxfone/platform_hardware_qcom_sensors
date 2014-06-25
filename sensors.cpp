@@ -29,18 +29,39 @@
 #include <utils/Log.h>
 
 #include "sensors.h"
+#ifdef BMA222E_SENSOR
+#include "BmaSensor.h"
+#else
 #include "AccelSensor.h"
+#endif
 #include "LightSensor.h"
 #include "ProximitySensor.h"
 #include "AkmSensor.h"
 #include "GyroSensor.h"
 #include "PressureSensor.h"
+#include "ST480Sensor.h"
 
 /*****************************************************************************/
 
 /* The SENSORS Module */
 static const struct sensor_t sSensorList[] = {
 	/* Accelerometer */
+#ifdef BMA222E_SENSOR
+	{
+		"BMA222E 3-axis Accelerometer",
+		"Bosch",
+		1,	/* hw/sw version */
+		SENSORS_ACCELERATION_HANDLE,
+		SENSOR_TYPE_ACCELEROMETER,
+		(4.0f * 9.81f),
+		(4.0f * 9.81f) / 256.0f,
+		0.2f,
+		0,
+		0,
+		0,
+		{ }
+	},
+#else
 	{
 		"accelerometer",
 		"ST Micro",
@@ -55,41 +76,42 @@ static const struct sensor_t sSensorList[] = {
 		0,
 		{ }
 	},
+#endif
 
-	/* magnetic field sensor
+	// magnetic field sensor
 	{
-		"AK8975",
-		"Asahi Kasei Microdevices",
+		"ST480 MAG",
+		"SENODIA Technologies Co",
 		1,
 		SENSORS_MAGNETIC_FIELD_HANDLE,
 		SENSOR_TYPE_MAGNETIC_FIELD,
-		2000.0f,
-		(1.0f/16.0f),
-		6.8f,
+		32767.0f,
+		1.0f,
+		0.4f,
 		16667,
 		0,
 		0,
 		{ }
-	},*/
+	},
 
-	/* orientation sensor
+	// orientation sensor
 	{
-		"AK8975",
-		"Asahi Kasei Microdevices",
+		"ST480 ORT",
+		"SENODIA Technologies Co",
 		1,
 		SENSORS_ORIENTATION_HANDLE,
 		SENSOR_TYPE_ORIENTATION,
 		360.0f,
-		(1.0f/64.0f),
-		7.8f,
+		0.01f,
+		0.4f,
 		16667 ,
 		0,
 		0,
 		{ }
-	},*/
+	},
 
 	/* light sensor name */
-	{
+	/*{
 		"TSL27713FN",
 		"Taos",
 		1,
@@ -99,13 +121,25 @@ static const struct sensor_t sSensorList[] = {
 		1.0f,
 		0.75f,
 		0,
+		{ }
+	},*/
+	{
+		"stk3x1x Ambient Light Sensor",
+		"sensortek",
+		1,
+		SENSORS_LIGHT_HANDLE,
+		SENSOR_TYPE_LIGHT,
+		4096.0f,
+		1.0f,
+		0.09f,
+		0,
 		0,
 		0,
 		{ }
 	},
 
 	/* proximity sensor */
-	{
+	/*{
 		"TSL27713FN",
 		"Taos",
 		1,
@@ -114,6 +148,19 @@ static const struct sensor_t sSensorList[] = {
 		5.0f,
 		5.0f,
 		0.75f,
+		0,
+		{ }
+	},*/
+
+	{
+		"stk3x1x Proximity Sensor",
+		"sensortek",
+		1,
+		SENSORS_PROXIMITY_HANDLE,
+		SENSOR_TYPE_PROXIMITY,
+		1.0f,
+		0.1f,
+		0.873f,
 		0,
 		0,
 		0,
@@ -135,7 +182,7 @@ static const struct sensor_t sSensorList[] = {
 		0,
 		{ }
 	},
-	
+
 	/* barometer */
 	{
 		"bmp180",
@@ -153,149 +200,15 @@ static const struct sensor_t sSensorList[] = {
 	}
 };
 
-static struct sensor_t sensor_list[MAX_SENSORS];
-static char name[MAX_SENSORS][SYSFS_MAXLEN];
-static char vendor[MAX_SENSORS][SYSFS_MAXLEN];
-static int dynamic_sensor_number;
-
 static int open_sensors(const struct hw_module_t* module, const char* id,
 						struct hw_device_t** device);
 
-static int get_node(char *buf, char *path) {
-	char * fret;
-	int len = 0;
-	FILE * fd;
-
-	if (NULL == buf || NULL == path)
-		return -1;
-
-	fd = fopen(path, "r");
-	if (NULL == fd)
-		return -1;
-
-	fret = fgets(buf,SYSFS_MAXLEN,fd);
-	if (NULL == fret) {
-		fclose(fd);
-		return -1;
-	}
-
-	len = strlen(buf);
-
-	if (buf[len - 1] == '\n')
-		buf[len - 1] = '\0';
-
-	fclose(fd);
-	return 0;
-}
-
-static int get_sensors_list() {
-	int number = 0;
-	int fd = -1;
-	int err = -1;
-	const char *dirname = SYSFS_CLASS;
-	char devname[PATH_MAX];
-	char *filename;
-	char *nodename;
-	DIR *dir;
-	struct dirent *de;
-	char tempname[SYSFS_MAXLEN];
-
-	dir = opendir(dirname);
-	if(dir == NULL) {
-		dynamic_sensor_number = 0;
-		return -1;
-	}
-	strlcpy(devname, dirname, PATH_MAX - SYSFS_MAXLEN * 2 - 2);
-	filename = devname + strlen(devname);
-	*filename++ = '/';
-
-	while((de = readdir(dir))) {
-		if(de->d_name[0] == '.' &&
-			(de->d_name[1] == '\0' ||
-				(de->d_name[1] == '.' && de->d_name[2] == '\0')))
-			continue;
-
-		strlcpy(filename, de->d_name, SYSFS_MAXLEN);
-		nodename = filename + strlen(de->d_name);
-		*nodename++ = '/';
-
-		strlcpy(nodename, SYSFS_NAME, SYSFS_MAXLEN);
-		err = get_node(name[number], devname);
-		if(err < 0)
-			goto error;
-		sensor_list[number].name = name[number];
-
-		strlcpy(nodename, SYSFS_VENDOR, SYSFS_MAXLEN);
-		err = get_node(vendor[number], devname);
-		if(err < 0)
-			goto error;
-		sensor_list[number].vendor = vendor[number];
-
-		strlcpy(nodename, SYSFS_VERSION, SYSFS_MAXLEN);
-		err = get_node(tempname, devname);
-		if(err < 0)
-			goto error;
-		sensor_list[number].version = atoi(tempname);
-
-		strlcpy(nodename, SYSFS_HANDLE, SYSFS_MAXLEN);
-		err = get_node(tempname, devname);
-		if(err < 0)
-			goto error;
-		sensor_list[number].handle = atoi(tempname);
-
-		strlcpy(nodename, SYSFS_TYPE, SYSFS_MAXLEN);
-		err = get_node(tempname, devname);
-		if(err < 0)
-			goto error;
-		sensor_list[number].type = atoi(tempname);
-
-		strlcpy(nodename, SYSFS_MAXRANGE, SYSFS_MAXLEN);
-		err = get_node(tempname, devname);
-		if(err < 0)
-			goto error;
-		sensor_list[number].maxRange = atof(tempname);
-
-		strlcpy(nodename, SYSFS_RESOLUTION, SYSFS_MAXLEN);
-		err = get_node(tempname, devname);
-		if(err < 0)
-			goto error;
-		sensor_list[number].resolution = atof(tempname);
-
-		strlcpy(nodename, SYSFS_POWER, SYSFS_MAXLEN);
-		err = get_node(tempname, devname);
-		if(err < 0)
-			goto error;
-		sensor_list[number].power = atof(tempname);
-
-		strlcpy(nodename, SYSFS_MINDELAY, SYSFS_MAXLEN);
-		err = get_node(tempname, devname);
-		if(err < 0)
-			goto error;
-		sensor_list[number].minDelay = atoi(tempname);
-
-		number++;
-	}
-	closedir(dir);
-	dynamic_sensor_number = number;
-	return number;
-
-error:
-	dynamic_sensor_number = 0;
-	closedir(dir);
-	ALOGE("get_sensors_list failed!");
-	return -1;
-}
 
 static int sensors__get_sensors_list(struct sensors_module_t* module,
-								 struct sensor_t const** list)
+									 struct sensor_t const** list)
 {
-	if(dynamic_sensor_number > 0) {
-		*list = sensor_list;
-		return dynamic_sensor_number;
-	} else { /* If we could not find any sensor folder, load the default.*/
 		*list = sSensorList;
 		return ARRAY_SIZE(sSensorList);
-	}
 }
 
 static struct hw_module_methods_t sensors_module_methods = {
@@ -325,18 +238,22 @@ struct sensors_poll_context_t {
 	int pollEvents(sensors_event_t* data, int count);
 
 private:
-	int light;
-	int proximity;
-	int compass;
-	int gyro;
-	int accel;
-	int pressure;
-	static const size_t wake = MAX_SENSORS;
+	enum {
+		light			= 0,
+		proximity		= 1,
+		compass			= 2,
+		gyro			= 3,
+		accel			= 4,
+		pressure		= 5,
+		numSensorDrivers,
+		numFds,
+	};
+
+	static const size_t wake = numFds - 1;
 	static const char WAKE_MESSAGE = 'W';
-	struct pollfd mPollFds[MAX_SENSORS+1];
+	struct pollfd mPollFds[numFds];
 	int mWritePipeFd;
-	int device_id;
-	SensorBase* mSensors[MAX_SENSORS];
+	SensorBase* mSensors[numSensorDrivers];
 
 	int handleToDriver(int handle) const {
 		switch (handle) {
@@ -362,115 +279,40 @@ private:
 
 sensors_poll_context_t::sensors_poll_context_t()
 {
-	int number;
-	int handle;
-	light = -1;
-	proximity = -1;
-	compass = -1;
-	gyro = -1;
-	accel = -1;
-	pressure = -1;
-	device_id = 0;
-	number = get_sensors_list();
+	mSensors[light] = new LightSensor();
+	mPollFds[light].fd = mSensors[light]->getFd();
+	mPollFds[light].events = POLLIN;
+	mPollFds[light].revents = 0;
 
-	if(number <= 0){ /* use the static sensor list */
-		light = 0;
-		proximity = 1;
-		compass = 2;
-		gyro = 3;
-		accel = 4;
-		pressure = 5;
-		device_id = 6;
+	mSensors[proximity] = new ProximitySensor();
+	mPollFds[proximity].fd = mSensors[proximity]->getFd();
+	mPollFds[proximity].events = POLLIN;
+	mPollFds[proximity].revents = 0;
 
-		mSensors[light] = new LightSensor();
-		mPollFds[light].fd = mSensors[light]->getFd();
-		mPollFds[light].events = POLLIN;
-		mPollFds[light].revents = 0;
+	mSensors[gyro] = new GyroSensor();
+	mPollFds[gyro].fd = mSensors[gyro]->getFd();
+	mPollFds[gyro].events = POLLIN;
+	mPollFds[gyro].revents = 0;
 
-		mSensors[proximity] = new ProximitySensor();
-		mPollFds[proximity].fd = mSensors[proximity]->getFd();
-		mPollFds[proximity].events = POLLIN;
-		mPollFds[proximity].revents = 0;
+#ifdef BMA222E_SENSOR
+	mSensors[accel] = new BmaSensor("bma2x2", TOP_Y_FORWARD);
+#else
+	mSensors[accel] = new AccelSensor();
+#endif
+	mPollFds[accel].fd = mSensors[accel]->getFd();
+	mPollFds[accel].events = POLLIN;
+	mPollFds[accel].revents = 0;
 
-		mSensors[compass] = new AkmSensor();
-		mPollFds[compass].fd = mSensors[compass]->getFd();
-		mPollFds[compass].events = POLLIN;
-		mPollFds[compass].revents = 0;
+    mSensors[compass] = new ST480Sensor((BmaSensor*)mSensors[accel]);
+    mPollFds[compass].fd = mSensors[compass]->getFd();
+    mPollFds[compass].events = POLLIN;
+    mPollFds[compass].revents = 0;
 
-		mSensors[gyro] = new GyroSensor();
-		mPollFds[gyro].fd = mSensors[gyro]->getFd();
-		mPollFds[gyro].events = POLLIN;
-		mPollFds[gyro].revents = 0;
+	mSensors[pressure] = new PressureSensor();
+	mPollFds[pressure].fd = mSensors[pressure]->getFd();
+	mPollFds[pressure].events = POLLIN;
+	mPollFds[pressure].revents = 0;
 
-		mSensors[accel] = new AccelSensor();
-		mPollFds[accel].fd = mSensors[accel]->getFd();
-		mPollFds[accel].events = POLLIN;
-		mPollFds[accel].revents = 0;
-
-		mSensors[pressure] = new PressureSensor();
-		mPollFds[pressure].fd = mSensors[pressure]->getFd();
-		mPollFds[pressure].events = POLLIN;
-		mPollFds[pressure].revents = 0;
-
-	} else { /* use the dynamic sensor list */
-		for (handle = 0; handle < number; handle++) {
-			switch (sensor_list[handle].handle) {
-				case SENSORS_ACCELERATION_HANDLE:
-				mSensors[device_id] = new AccelSensor(name[handle]);
-				mPollFds[device_id].fd = mSensors[device_id]->getFd();
-				mPollFds[device_id].events = POLLIN;
-				mPollFds[device_id].revents = 0;
-				accel = device_id;
-				break;
-
-				case SENSORS_MAGNETIC_FIELD_HANDLE:
-				mSensors[device_id] = new AkmSensor();
-				mPollFds[device_id].fd = mSensors[device_id]->getFd();
-				mPollFds[device_id].events = POLLIN;
-				mPollFds[device_id].revents = 0;
-				compass = device_id;
-				break;
-
-				case SENSORS_PROXIMITY_HANDLE:
-				mSensors[device_id] = new ProximitySensor(name[handle]);
-				mPollFds[device_id].fd = mSensors[device_id]->getFd();
-				mPollFds[device_id].events = POLLIN;
-				mPollFds[device_id].revents = 0;
-				proximity = device_id;
-				break;
-
-				case SENSORS_LIGHT_HANDLE:
-				mSensors[device_id] = new LightSensor(name[handle]);
-				mPollFds[device_id].fd = mSensors[device_id]->getFd();
-				mPollFds[device_id].events = POLLIN;
-				mPollFds[device_id].revents = 0;
-				light = device_id;
-				break;
-
-				case SENSORS_GYROSCOPE_HANDLE:
-				mSensors[device_id] = new GyroSensor(name[handle]);
-				mPollFds[device_id].fd = mSensors[device_id]->getFd();
-				mPollFds[device_id].events = POLLIN;
-				mPollFds[device_id].revents = 0;
-				gyro = device_id;
-				break;
-
-				case SENSORS_PRESSURE_HANDLE:
-				mSensors[device_id] = new PressureSensor(name[handle]);
-				mPollFds[device_id].fd = mSensors[device_id]->getFd();
-				mPollFds[device_id].events = POLLIN;
-				mPollFds[device_id].revents = 0;
-				pressure = device_id;
-				break;
-
-				default:
-				ALOGE("No handle %d for this type sensor!",handle);
-				device_id--;
-			}
-			device_id++;
-		}
-	}
-	ALOGI("The avaliable sensor handle number is %d",device_id);
 	int wakeFds[2];
 	int result = pipe(wakeFds);
 	ALOGE_IF(result<0, "error creating wake pipe (%s)", strerror(errno));
@@ -478,16 +320,16 @@ sensors_poll_context_t::sensors_poll_context_t()
 	fcntl(wakeFds[1], F_SETFL, O_NONBLOCK);
 	mWritePipeFd = wakeFds[1];
 
-	mPollFds[device_id].fd = wakeFds[0];
-	mPollFds[device_id].events = POLLIN;
-	mPollFds[device_id].revents = 0;
+	mPollFds[wake].fd = wakeFds[0];
+	mPollFds[wake].events = POLLIN;
+	mPollFds[wake].revents = 0;
 }
 
 sensors_poll_context_t::~sensors_poll_context_t() {
-	for (int i=0 ; i<device_id ; i++) {
+	for (int i=0 ; i<numSensorDrivers ; i++) {
 		delete mSensors[i];
 	}
-	close(mPollFds[device_id].fd);
+	close(mPollFds[wake].fd);
 	close(mWritePipeFd);
 }
 
@@ -517,7 +359,7 @@ int sensors_poll_context_t::pollEvents(sensors_event_t* data, int count)
 
 	do {
 		// see if we have some leftover from the last poll()
-		for (int i=0 ; count && i<device_id ; i++) {
+		for (int i=0 ; count && i<numSensorDrivers ; i++) {
 			SensorBase* const sensor(mSensors[i]);
 			if ((mPollFds[i].revents & POLLIN) || (sensor->hasPendingEvents())) {
 				int nb = sensor->readEvents(data, count);
@@ -536,18 +378,18 @@ int sensors_poll_context_t::pollEvents(sensors_event_t* data, int count)
 			// some events immediately or just wait if we don't have
 			// anything to return
 			do {
-				n = poll(mPollFds, device_id+1, nbEvents ? 0 : -1);
+				n = poll(mPollFds, numFds, nbEvents ? 0 : -1);
 			} while (n < 0 && errno == EINTR);
 			if (n<0) {
 				ALOGE("poll() failed (%s)", strerror(errno));
 				return -errno;
 			}
-			if (mPollFds[device_id].revents & POLLIN) {
+			if (mPollFds[wake].revents & POLLIN) {
 				char msg;
-				int result = read(mPollFds[device_id].fd, &msg, 1);
+				int result = read(mPollFds[wake].fd, &msg, 1);
 				ALOGE_IF(result<0, "error reading from wake pipe (%s)", strerror(errno));
 				ALOGE_IF(msg != WAKE_MESSAGE, "unknown message on wake queue (0x%02x)", int(msg));
-				mPollFds[device_id].revents = 0;
+				mPollFds[wake].revents = 0;
 			}
 		}
 		// if we have events and space, go read them

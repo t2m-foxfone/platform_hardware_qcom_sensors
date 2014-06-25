@@ -44,18 +44,18 @@ enum {
 static const char *data_device_name[] = {
 	[LIGHTSENSOR_LEVEL] = "lightsensor-level",
 	[CM36283_LS] = "cm36283-ls",
-	[STK3x1x_LS] = "stk3x1x-ls",
+	[STK3x1x_LS] = "stk3x1x-als",
 };
 
 static const char *input_sysfs_path_list[] = {
 	[LIGHTSENSOR_LEVEL] = "/sys/class/input/%s/device/",
-	[CM36283_LS] = "/sys/class/input/%s/device/",
+	[CM36283_LS] = "/sys/class/optical_sensors/lightsensor/",
 	[STK3x1x_LS] = "/sys/class/input/%s/device/",
 };
 
 static const char *input_sysfs_enable_list[] = {
 	[LIGHTSENSOR_LEVEL] = "enable",
-	[CM36283_LS] = "enable",
+	[CM36283_LS] = "ls_auto",
 	[STK3x1x_LS] = "enable",
 };
 
@@ -100,43 +100,6 @@ LightSensor::LightSensor()
 	}
 }
 
-LightSensor::LightSensor(char *name)
-	: SensorBase(NULL, NULL),
-	  mEnabled(0),
-	  mInputReader(4),
-	  mHasPendingEvent(false),
-	  sensor_index(-1)
-{
-	int i;
-
-	mPendingEvent.version = sizeof(sensors_event_t);
-	mPendingEvent.sensor = SENSORS_LIGHT_HANDLE;
-	mPendingEvent.type = SENSOR_TYPE_LIGHT;
-	memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
-
-	for(i = 0; i < SUPPORTED_LSENSOR_COUNT; i++) {
-		data_name = data_device_name[i];
-
-		// data_fd is not initialized if data_name passed
-		// to SensorBase is NULL.
-		data_fd = openInput(data_name);
-		if (data_fd > 0) {
-			sensor_index = i;
-			break;
-		}
-	}
-
-	if (data_fd) {
-		strlcpy(input_sysfs_path, SYSFS_CLASS, sizeof(input_sysfs_path));
-		strlcat(input_sysfs_path, "/", sizeof(input_sysfs_path));
-		strlcat(input_sysfs_path, name, sizeof(input_sysfs_path));
-		strlcat(input_sysfs_path, "/", sizeof(input_sysfs_path));
-		input_sysfs_path_len = strlen(input_sysfs_path);
-		ALOGI("The light sensor path is %s",input_sysfs_path);
-		enable(0, 1);
-	}
-}
-
 LightSensor::~LightSensor() {
 	if (mEnabled) {
 		enable(0, 0);
@@ -146,8 +109,7 @@ LightSensor::~LightSensor() {
 int LightSensor::setDelay(int32_t handle, int64_t ns)
 {
 	int fd;
-	strlcpy(&input_sysfs_path[input_sysfs_path_len],
-			SYSFS_POLL_DELAY, SYSFS_MAXLEN);
+	strcpy(&input_sysfs_path[input_sysfs_path_len], "poll_delay");
 	fd = open(input_sysfs_path, O_RDWR);
 	if (fd >= 0) {
 		char buf[80];

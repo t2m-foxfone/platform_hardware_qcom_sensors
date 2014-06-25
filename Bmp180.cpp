@@ -61,29 +61,6 @@ PressureSensor::PressureSensor()
 	}
 }
 
-PressureSensor::PressureSensor(char *name)
-	: SensorBase(NULL, "bmp18x"),
-	  mEnabled(0),
-	  mInputReader(4),
-	  mHasPendingEvent(false),
-	  mEnabledTime(0)
-{
-	mPendingEvent.version = sizeof(sensors_event_t);
-	mPendingEvent.sensor = SENSORS_PRESSURE_HANDLE;
-	mPendingEvent.type = SENSOR_TYPE_PRESSURE;
-	memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
-
-	if (data_fd) {
-		strlcpy(input_sysfs_path, SYSFS_CLASS, sizeof(input_sysfs_path));
-		strlcat(input_sysfs_path, "/", sizeof(input_sysfs_path));
-		strlcat(input_sysfs_path, name, sizeof(input_sysfs_path));
-		strlcat(input_sysfs_path, "/", sizeof(input_sysfs_path));
-		input_sysfs_path_len = strlen(input_sysfs_path);
-		ALOGI("The pressure sensor path is %s",input_sysfs_path);
-		enable(0, 1);
-	}
-}
-
 PressureSensor::~PressureSensor() {
 	if (mEnabled) {
 		enable(0, 0);
@@ -105,8 +82,7 @@ int PressureSensor::enable(int32_t, int en) {
 	int flags = en ? 1 : 0;
 	if (flags != mEnabled) {
 		int fd;
-		strlcpy(&input_sysfs_path[input_sysfs_path_len],
-				SYSFS_ENABLE, SYSFS_MAXLEN);
+		strcpy(&input_sysfs_path[input_sysfs_path_len], "enable");
 		fd = open(input_sysfs_path, O_RDWR);
 		if (fd >= 0) {
 			char buf[2];
@@ -137,8 +113,7 @@ int PressureSensor::setDelay(int32_t handle, int64_t delay_ns)
 {
 	int fd;
 	int delay_ms = delay_ns / 1000000;
-	strlcpy(&input_sysfs_path[input_sysfs_path_len],
-			SYSFS_POLL_DELAY, SYSFS_MAXLEN);
+	strcpy(&input_sysfs_path[input_sysfs_path_len], "pollrate_ms");
 	fd = open(input_sysfs_path, O_RDWR);
 	if (fd >= 0) {
 		char buf[80];

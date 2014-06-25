@@ -33,24 +33,28 @@
 /*****************************************************************************/
 
 enum input_device_name {
-    LEGACY_PSENSOR = 0,
-    CM36283_PS,
-    SUPPORTED_PSENSOR_COUNT,
+	LEGACY_PSENSOR = 0,
+	CM36283_PS,
+	STK3x1x_PS,
+	SUPPORTED_PSENSOR_COUNT,
 };
 
 static const char *data_device_name[] = {
-    [LEGACY_PSENSOR] = "proximity",
-        [CM36283_PS] = "cm36283-ps",
+	[LEGACY_PSENSOR] = "proximity",
+	[CM36283_PS] = "cm36283-ps",
+	[STK3x1x_PS] = "stk3x1x-ps",
 };
 
 static const char *input_sysfs_path_list[] = {
-    [LEGACY_PSENSOR] = "/sys/class/input/%s/device/",
-        [CM36283_PS] = "/sys/class/input/%s/device/",
+	[LEGACY_PSENSOR] = "/sys/class/input/%s/device/",
+	[CM36283_PS] = "/sys/class/optical_sensors/proximity/",
+	[STK3x1x_PS] = "/sys/class/input/%s/device/",
 };
 
 static const char *input_sysfs_enable_list[] = {
-    [LEGACY_PSENSOR] = "enable",
-        [CM36283_PS] = "enable",
+	[LEGACY_PSENSOR] = "enable",
+	[CM36283_PS] = "ps_adc",
+	[STK3x1x_PS] = "enable",
 };
 
 
@@ -87,42 +91,6 @@ ProximitySensor::ProximitySensor()
     }
 }
 
-ProximitySensor::ProximitySensor(char *name)
-	: SensorBase(NULL, NULL),
-	  mEnabled(0),
-	  mInputReader(4),
-	  mHasPendingEvent(false),
-	  sensor_index(-1)
-{
-	int i;
-
-	mPendingEvent.version = sizeof(sensors_event_t);
-	mPendingEvent.sensor = SENSORS_PROXIMITY_HANDLE;
-	mPendingEvent.type = SENSOR_TYPE_PROXIMITY;
-	memset(mPendingEvent.data, 0, sizeof(mPendingEvent.data));
-
-	for(i = 0; i < SUPPORTED_PSENSOR_COUNT; i++) {
-		data_name = data_device_name[i];
-
-		// data_fd is not initialized if data_name passed
-		// to SensorBase is NULL.
-		data_fd = openInput(data_name);
-		if (data_fd > 0) {
-			sensor_index = i;
-			break;
-		}
-	}
-
-	if (data_fd) {
-		strlcpy(input_sysfs_path, SYSFS_CLASS, sizeof(input_sysfs_path));
-		strlcat(input_sysfs_path, "/", sizeof(input_sysfs_path));
-		strlcat(input_sysfs_path, name, sizeof(input_sysfs_path));
-		strlcat(input_sysfs_path, "/", sizeof(input_sysfs_path));
-		input_sysfs_path_len = strlen(input_sysfs_path);
-		ALOGI("The proximity sensor path is %s",input_sysfs_path);
-		enable(0, 1);
-	}
-}
 ProximitySensor::~ProximitySensor() {
     if (mEnabled) {
         enable(0, 0);

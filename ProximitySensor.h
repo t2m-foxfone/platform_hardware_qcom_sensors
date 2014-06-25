@@ -42,8 +42,7 @@ class ProximitySensor : public SensorBase {
     float indexToValue(size_t index) const;
 
 public:
-	ProximitySensor();
-	ProximitySensor(char *name);
+            ProximitySensor();
     virtual ~ProximitySensor();
     virtual int readEvents(sensors_event_t* data, int count);
     virtual bool hasPendingEvents() const;

@@ -14,47 +14,64 @@
  * limitations under the License.
  */
 
-#ifndef ANDROID_AKM_SENSOR_H
-#define ANDROID_AKM_SENSOR_H
+#ifndef ANDROID_ST480_SENSOR_H
+#define ANDROID_ST480_SENSOR_H
 
 #include <stdint.h>
 #include <errno.h>
 #include <sys/cdefs.h>
 #include <sys/types.h>
+#include <linux/ioctl.h>
 
+#include "sensors.h"
 #include "SensorBase.h"
 #include "InputEventReader.h"
-
-/*****************************************************************************/
+#include "RunAlgorithm.h"
+#include "BmaSensor.h"
+#define ST480_DEVICE_NAME     "/dev/st480"
 
 struct input_event;
+class BmaSensor;
 
-class AkmSensor : public SensorBase {
+class ST480Sensor : public SensorBase {
 public:
-			AkmSensor();
-	virtual ~AkmSensor();
+		ST480Sensor(BmaSensor* as);
+	virtual ~ST480Sensor();
 
 	enum {
-		Accelerometer	= 0,
-		MagneticField	= 1,
-		Orientation		= 2,
+		MagneticField   = 0,
+		Orientation	= 1,
 		numSensors
 	};
 
 	virtual int setDelay(int32_t handle, int64_t ns);
 	virtual int enable(int32_t handle, int enabled);
 	virtual int readEvents(sensors_event_t* data, int count);
-	void processEvent(int code, int value);
 
 private:
 	int update_delay();
+	int mEnCount;
 	uint32_t mEnabled;
 	uint32_t mPendingMask;
 	InputEventCircularReader mInputReader;
 	sensors_event_t mPendingEvents[numSensors];
 	uint64_t mDelays[numSensors];
+	bool mMaEnabled;
+	bool mOrEnabled;
+	_st480 st480;
+	BmaSensor *mAccSensor; //Tori
 };
 
 /*****************************************************************************/
 
-#endif  // ANDROID_AKM_SENSOR_H
+#define SENODIAIO                   0xA1
+
+/* IOCTLs for hal */
+#define ECS_IOCTL_APP_SET_MFLAG         _IOW(SENODIAIO, 0x10, short)
+#define ECS_IOCTL_APP_GET_MFLAG         _IOR(SENODIAIO, 0x11, short)
+#define ECS_IOCTL_APP_SET_DELAY         _IOW(SENODIAIO, 0x12, short)
+#define ECS_IOCTL_APP_GET_DELAY         _IOR(SENODIAIO, 0x13, short)
+#define ECS_IOCTL_APP_SET_MVFLAG        _IOW(SENODIAIO, 0x14, short)
+#define ECS_IOCTL_APP_GET_MVFLAG        _IOR(SENODIAIO, 0x15, short)
+
+#endif
